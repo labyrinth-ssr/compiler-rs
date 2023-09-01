@@ -2,7 +2,6 @@ use lalrpop_util::lalrpop_mod;
 use std::env::args;
 use std::fs::read_to_string;
 use std::io::Result;
-
 // 引用 lalrpop 生成的解析器
 // 因为我们刚刚创建了 sysy.lalrpop, 所以模块名是 sysy
 // lalrpop_mod!(sysy);
@@ -22,7 +21,7 @@ fn main() -> Result<()> {
     // 调用 lalrpop 生成的 parser 解析输入文件
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
-    // 输出解析得到的 AST
-    println!("{}", ast);
+    // parse input file
+    println!("{:#?}", ast);
     Ok(())
 }
