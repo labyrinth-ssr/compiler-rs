@@ -7,6 +7,7 @@ edition = "2021"
 
 # The generated code depends on lalrpop-util.
 [dependencies]
+koopa = "0.0.7"
 lalrpop-util = { version = "0.20.0", features = ["lexer"] }
 
 # Add a build-time dependency on the lalrpop library:
