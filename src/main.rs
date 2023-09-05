@@ -93,6 +93,7 @@ fn main() -> Result<()> {
 
     // parse input file
     println!("{}", ast);
+
     let driver = koopa::front::Driver::from(ast.to_string());
     let program = driver.generate_program().unwrap();
     // 数据和layout是分离表示的
@@ -104,7 +105,8 @@ fn main() -> Result<()> {
     match mode.as_str() {
         "-koopa" => {
             // 文本形式IR，文件output
-            write!(&mut writer, "{}", ast)
+            // write!(&mut writer, "{}", ast)
+            Ok(())
         }
         "-riscv" => {
             // RISC-V汇编，文件output
