@@ -18,10 +18,17 @@ pub struct InstRet{
     pub valuekind:String, // 新建String表示类型名
 }
 
+#[derive(PartialEq, Eq)]
+pub enum ParentType {
+    Binary,
+    Return,
+    None
+}
+
 // 根据内存形式 Koopa IR 生成汇编
 trait GenerateAsm {
     fn generate(&self, result: &mut String) {}
-    fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,is_operand:bool) -> InstRet{
+    fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,parent_type:ParentType) -> InstRet{
         InstRet{reg:"".to_string(),valuekind:"".to_string()}
     } 
 }
@@ -50,54 +57,60 @@ impl GenerateAsm for koopa::ir::FunctionData {
 
         // 遍历基本块列表
         for (&bb, node) in self.layout().bbs() {
-            // 一些必要的处理
-            // ...
             // 遍历指令列表
             for &inst in node.insts().keys() {
-                // 一些必要的处理
-                // ...
                 // 处理指令
-                let inst_ret = inst.generate_inst(result, self,&regs,&mut reg_index,&mut inst_reg,false);
-                // 一条指令最多只有一个rd，保存对应的寄存器名
-
+                let inst_ret = inst.generate_inst(result, self,&regs,&mut reg_index,&mut inst_reg,ParentType::None);
             }
         }
     }
 }
 
-
 impl GenerateAsm for koopa::ir::entities::Value {
-    fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,is_operand:bool) -> InstRet{
+    fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,parent_type:ParentType) -> InstRet{
         use koopa::ir::ValueKind;
         use koopa::ir::BinaryOp::Eq;
         use koopa::ir::BinaryOp::Sub;
         let value_data = env.dfg().value(*self);
-        // println!("value_data.kind():{:?}", value_data.kind());
 
         match value_data.kind() {
             ValueKind::Integer(int) => {
-                
-                // 处理 integer 指令,
-                // 0 单独出现时依然需要li
-                // 作为binary 出现时可以用x0代替
-                // 因此需要来自binary的信息:is_operand
-                // 将所有inst一起处理是否本身不够合理？
-                
+
+                // 1. 父类型是二元运算，
+                //     1.1 val非0，rd为临时寄存器，添加指令li reg, val
+                //     1.2 val为0，rd为x0，不添加指令
+                // 2. 父类型时return，rd为a0/a1，添加指令li rd，val
                 let val = int.value();
-                if !(val == 0 && is_operand){
-                    let reg = regs[*reg_index];
-                    *reg_index  += 1;
-                    let str = " li ".to_string() + reg + ", " + val.to_string().as_str() + "\n";
+                let mut rd = "";
+                match parent_type {
+                    ParentType::Binary => {
+                        if val != 0 {
+                            rd = regs[*reg_index];
+                            *reg_index  += 1;
+                            let str = "  li    ".to_string() + rd+ ", " + val.to_string().as_str() + "\n";
                     result.push_str(&str);
-                    return InstRet{reg:reg.to_string(),valuekind:"Integer".to_string()};
-                } 
-                return InstRet{reg:"x0".to_string(),valuekind:"Integer".to_string()};
-            }
+                        } else {
+                            rd = "x0";
+                        }
+                    },
+                    ParentType::Return => {
+                        rd = "a0";
+                        let str = "  li    ".to_string() + rd+ ", " + val.to_string().as_str() + "\n";
+                        result.push_str(&str);
+                    },
+                    _ => {}
+                };
+
+                    return InstRet{reg:rd.to_string(),valuekind:"Integer".to_string()};
+                } ,
             ValueKind::Return(ret) => {
-                // 处理 ret 指令
                 match ret.value() {
                     Some(value) => {
-                        value.generate_inst(result, env,regs,reg_index,inst_reg,false);
+                        let inst_ret =value.generate_inst(result, env,regs,reg_index,inst_reg,ParentType::Return);
+                        if inst_ret.valuekind == "Binary" {
+                            let str = "  mv    a0,".to_string() + inst_ret.reg.as_str() + "\n";
+                            result.push_str(&str);
+                        }
                     }
                     None => {}
                 }
@@ -105,20 +118,18 @@ impl GenerateAsm for koopa::ir::entities::Value {
                 return InstRet{reg:"".to_string(),valuekind:"Return".to_string()};
             }
             ValueKind::Binary(binaryop)=>{
-                // lhs 是value
-                // 返回reg名
-                if is_operand {
+                // 父类型时表达式时不添加指令
+                if parent_type != ParentType::None {
                     return InstRet{reg:inst_reg[&self].to_string(),valuekind:"Binary".to_string()} ;
                 }
-                let lhs_ret = binaryop.lhs().generate_inst(result, env,regs,reg_index,inst_reg,true);
-                let rhs_ret= binaryop.rhs().generate_inst(result, env,regs,reg_index,inst_reg,true);
-                // 仅当类型时integer时，可以复用reg
-                // 默认lhs作为rd，如果lhs是0，那么rhs作为rd
-                // 如果都是0，另外选择一个寄存器作为rd
+                let lhs_ret = binaryop.lhs().generate_inst(result, env,regs,reg_index,inst_reg,ParentType::Binary);
+                let rhs_ret= binaryop.rhs().generate_inst(result, env,regs,reg_index,inst_reg,ParentType::Binary);
+
+                // 当类型为integer且非零时，可以复用reg
                 let mut rd_reg = String::new();
-                if &lhs_ret.valuekind =="Interger" &&lhs_ret.reg != "x0" {
+                if &lhs_ret.valuekind =="Integer" &&lhs_ret.reg != "x0" {
                     rd_reg = lhs_ret.reg.clone();
-                } else if &rhs_ret.valuekind =="Interger" &&rhs_ret.reg != "x0" {
+                } else if &rhs_ret.valuekind =="Integer" &&rhs_ret.reg != "x0" {
                     rd_reg = rhs_ret.reg.clone();
                 } else {
                     rd_reg = regs[*reg_index].to_string();
@@ -129,15 +140,15 @@ impl GenerateAsm for koopa::ir::entities::Value {
 
                 match binaryop.op() {
                     Eq =>{
-                        let str = "xor ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  xor   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
-                        let str = "seqz ".to_string() + rd_reg.as_str() + ", " + rd_reg.as_str() + "\n";
+                        let str = "  seqz  ".to_string() + rd_reg.as_str() + ", " + rd_reg.as_str() + "\n";
                         result.push_str(&str);
                             
                         InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
                     },
                     Sub=>{
-                        let str = "sub ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  sub   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
                         InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
                     },
@@ -185,6 +196,7 @@ fn main() -> Result<()> {
         }
         "-riscv" => {
             // RISC-V汇编，文件output
+            println!("{}",program_str);
             write!(&mut writer, "{}", program_str)
         }
         _ => unreachable!(),
