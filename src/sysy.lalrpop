@@ -32,20 +32,42 @@ FuncType: FuncType = "int" => FuncType::Int;
 
 Block: Block = "{" <stmt: Stmt> "}" => Block { <> };
 
-Stmt: Stmt = "return" <exp:UnaryExp> ";" => Stmt { exp:*exp };
+Stmt: Stmt = "return" <exp:AddExp> ";" => Stmt { exp:*exp };
 
 Number: i32 = <num: IntConst> => <>;
 
-UnaryExp: Box<UnaryExp>  =  {
-  Number => Box::new(UnaryExp::Number(<>)),
-  "(" <UnaryExp> ")" => <>,
-  <a:UnaryOp> <b:UnaryExp> => Box::new(UnaryExp::Op(a,b))
+// Addexp 
+UnaryExp: Box<Exp>  =  {
+  Number => Box::new(Exp::Number(<>)),
+  <a:UnaryOp> <b:UnaryExp> => Box::new(Exp::UnaryExp(a,b)),
+  "(" <AddExp> ")" => <>,
+};
+
+MulExp: Box<Exp> = {
+  <a:MulExp> <b:MulOp> <c:UnaryExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  <a:UnaryExp> => <>,
+};            
+
+AddExp: Box<Exp> = {
+  <a:AddExp> <b:AddOp> <c:MulExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  <a:MulExp> => <>,
 };
 
 UnaryOp: UnaryOp = {
   "+" => UnaryOp::Pos,
   "-" => UnaryOp::Neg,
   "!" => UnaryOp::Not,
+};
+
+MulOp: BinaryOp = {
+  "*" => BinaryOp::Mul,
+  "/" => BinaryOp::Div,
+  "%" => BinaryOp::Mod,
+};
+
+AddOp: BinaryOp = {
+  "+" => BinaryOp::Add,
+  "-" => BinaryOp::Sub,
 };
 
 // 如果匹配到标识符, 就返回这个字符串

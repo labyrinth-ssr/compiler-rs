@@ -69,8 +69,7 @@ impl GenerateAsm for koopa::ir::FunctionData {
 impl GenerateAsm for koopa::ir::entities::Value {
     fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,parent_type:ParentType) -> InstRet{
         use koopa::ir::ValueKind;
-        use koopa::ir::BinaryOp::Eq;
-        use koopa::ir::BinaryOp::Sub;
+        use koopa::ir::BinaryOp::*;
         let value_data = env.dfg().value(*self);
 
         match value_data.kind() {
@@ -108,7 +107,7 @@ impl GenerateAsm for koopa::ir::entities::Value {
                     Some(value) => {
                         let inst_ret =value.generate_inst(result, env,regs,reg_index,inst_reg,ParentType::Return);
                         if inst_ret.valuekind == "Binary" {
-                            let str = "  mv    a0,".to_string() + inst_ret.reg.as_str() + "\n";
+                            let str = "  mv    a0, ".to_string() + inst_ret.reg.as_str() + "\n";
                             result.push_str(&str);
                         }
                     }
@@ -152,6 +151,16 @@ impl GenerateAsm for koopa::ir::entities::Value {
                         result.push_str(&str);
                         InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
                     },
+                    Mul=>{
+                        let str = "  mul   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Add=>{
+                        let str = "  add   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                    }
                     _ => unreachable!()
                 }
                 }
@@ -178,7 +187,7 @@ fn main() -> Result<()> {
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
     // parse input file
-    // println!("{}", ast);
+    println!("{}", ast);
 
     let driver = koopa::front::Driver::from(ast.to_string());
     let program = driver.generate_program().unwrap();
