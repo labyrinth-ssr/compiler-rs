@@ -50,8 +50,17 @@ pub mod ast {
         Mod,
         Add,
         Sub,
+        Eq,
+        Ne,
+        Lt,
+        Gt,
+        Le,
+        Ge,
+        And,
+        Or,
     }
 
+        
     #[derive(Debug)]
     pub enum Exp {
         Number(i32),
@@ -189,7 +198,17 @@ pub mod ast {
 
                         BinaryOp::Sub =>{
                             // print!("<Sub {}%{} = sub {}, {} Sub>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}  %{} = sub {}, {}\n  ",prev_stmt1, self.add_pc(), prev_exp1, prev_exp2)
+                            write!(f, "{}{}%{} = sub {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                        },
+                        BinaryOp::Eq =>{
+                            // print!("<Eq {}%{} = eq {}, {} Eq>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
+                            write!(f, "{}{}%{} = eq {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                        },
+                        BinaryOp::Le=>{
+                            // print!("<Le {}%{} = sle {}, {} Le>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
+                            write!(f, "{}{}%{} = le {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                        },
+                        _ =>{Ok(())}
                         }
 
                     }  
@@ -198,7 +217,6 @@ pub mod ast {
             }
         }
     }
-}
 
     
     // impl fmt::Display for MulExp {

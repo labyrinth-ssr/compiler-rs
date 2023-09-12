@@ -32,25 +32,53 @@ FuncType: FuncType = "int" => FuncType::Int;
 
 Block: Block = "{" <stmt: Stmt> "}" => Block { <> };
 
-Stmt: Stmt = "return" <exp:AddExp> ";" => Stmt { exp:*exp };
+Stmt: Stmt = "return" <exp:Exp> ";" => Stmt { exp:*exp };
 
 Number: i32 = <num: IntConst> => <>;
 
+Exp:Box<Exp> = {
+  LOrExp
+};
+
+PrimaryExp:Box<Exp> = {
+  "(" <Exp> ")" => <>,
+  Number => Box::new(Exp::Number(<>)),
+};
+
 // Addexp 
 UnaryExp: Box<Exp>  =  {
-  Number => Box::new(Exp::Number(<>)),
   <a:UnaryOp> <b:UnaryExp> => Box::new(Exp::UnaryExp(a,b)),
-  "(" <AddExp> ")" => <>,
+  PrimaryExp
 };
 
 MulExp: Box<Exp> = {
   <a:MulExp> <b:MulOp> <c:UnaryExp> => Box::new(Exp::BinaryExp(a,b,c)),
-  <a:UnaryExp> => <>,
+  UnaryExp
 };            
 
 AddExp: Box<Exp> = {
   <a:AddExp> <b:AddOp> <c:MulExp> => Box::new(Exp::BinaryExp(a,b,c)),
-  <a:MulExp> => <>,
+  MulExp
+};
+
+RelExp:Box<Exp> = {
+  <a:RelExp> <b:CmpOp> <c:AddExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  AddExp
+};
+
+EqExp:Box<Exp> ={
+  <a:EqExp> <b:EqOp> <c:RelExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  RelExp
+};
+
+LAndExp:Box<Exp> = {
+  <a:LAndExp> <b:AndOp> <c:EqExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  EqExp
+};
+
+LOrExp:Box<Exp> = {
+  <a:LOrExp> <b:OrOp> <c:LAndExp> => Box::new(Exp::BinaryExp(a,b,c)),
+  LAndExp
 };
 
 UnaryOp: UnaryOp = {
@@ -69,6 +97,26 @@ AddOp: BinaryOp = {
   "+" => BinaryOp::Add,
   "-" => BinaryOp::Sub,
 };
+
+CmpOp: BinaryOp = {
+  "<" => BinaryOp::Lt,
+  ">" => BinaryOp::Gt,
+  "<=" => BinaryOp::Le,
+  ">=" => BinaryOp::Ge,
+}
+
+EqOp:BinaryOp ={
+  "==" => BinaryOp::Eq,
+  "!=" => BinaryOp::Ne,
+}
+
+AndOp:BinaryOp = {
+  "&&" => BinaryOp::And,
+}
+
+OrOp:BinaryOp = {
+  "||" => BinaryOp::Or,
+}
 
 // 如果匹配到标识符, 就返回这个字符串
 // 一对尖括号在此处指代的是正则表达式匹配到的字符串 (&str)

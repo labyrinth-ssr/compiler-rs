@@ -160,6 +160,11 @@ impl GenerateAsm for koopa::ir::entities::Value {
                         let str = "  add   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
                         InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Le => {
+                        let str = "  sgt   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n" + "  seqz  " + rd_reg.as_str() + ", " + rd_reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
                     }
                     _ => unreachable!()
                 }
