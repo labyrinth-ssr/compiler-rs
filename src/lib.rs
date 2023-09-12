@@ -99,14 +99,15 @@ pub mod ast {
                 },
                 Exp::UnaryExp(op, exp) => {
                     // println!("format {:?},",self);
-                    let mut prev_exp = String::new();
+                    let mut prev_exp = String::new(); // 
                     let mut prev_stmt = String::new();
 
                     match &**exp { //当前op的exp
                         Exp::Number(num) =>{ 
                             // println!("match number");   
-                            prev_exp = num.to_string()}, // 当前op的exp，如果是
-                        Exp::UnaryExp(unaryop, expression) => {
+                            prev_exp = num.to_string()
+                        }, // 当前op的exp，如果是
+                        Exp::UnaryExp(_unaryop, _expression) => {
                             // println!("format {:?} 's sub exp {:?}",self,exp);
                             prev_stmt = format!("{}",exp);
                             // println!("prev_stmt:({})",prev_stmt);
@@ -119,101 +120,125 @@ pub mod ast {
                     match op {
                         UnaryOp::Pos => {
                             // print!("<Pos {} Pos>", prev_stmt);
-                            write!(f, "{}", prev_stmt)},
+                            if prev_stmt.is_empty() {
+                                write!(f, "{}", prev_exp)
+                            } else{
+                            write!(f, "{}", prev_stmt)
+                                
+                            }
+                        },
                         UnaryOp::Neg => {
                             // print!("<Neg {}%{} = sub 0, {} Neg>\n",prev_stmt, self.load_pc(), prev_exp);
-                            write!(f, "{}  %{} = sub 0, {}\n  ",prev_stmt, self.add_pc(), prev_exp)},
+                            write!(f, "{}%{} = sub 0, {}\n  ",prev_stmt, self.add_pc(), prev_exp)},
                         UnaryOp::Not => {
                             // print!("<Not {}%{} = eq {}, 0 Not>\n",prev_stmt, self.load_pc(), prev_exp);
-                            write!(f, "{}  %{} = eq {}, 0\n  ",prev_stmt, self.add_pc(), prev_exp)},
+                            write!(f, "{}%{} = eq {}, 0\n  ",prev_stmt, self.add_pc(), prev_exp)},
                     }
                 },
                 Exp::BinaryExp(exp1,op ,exp2)=> {
                     // println!("format {:?},",self);
-                    let mut prev_exp1 = String::new();
-                    let mut prev_exp2 = String::new();
+                    let mut _prev_exp1 = String::new();
+                    let mut _prev_exp2 = String::new();
                     let mut prev_stmt1 = String::new();
                     let mut prev_stmt2 = String::new();
 
                     match &**exp1 { //当前op的exp1
                         Exp::Number(num) =>{
                             // println!("match number");   
-                            prev_exp1 = num.to_string()
+                            _prev_exp1 = num.to_string()
                         },
-                        Exp::UnaryExp(unaryop, expression) => {
+                        Exp::UnaryExp(_unaryop, _expression) => {
                             // println!("format {:?} 's sub exp {:?}",self,exp);
                             prev_stmt1 = format!("{}",exp1);
                             // println!("prev_stmt:({})",prev_stmt);
                             // println!("prev_exp:[{}]",exp.previous_pc().to_string());
-                            prev_exp1 = format!("%{}", exp1.previous_pc().to_string())
+                            _prev_exp1 = format!("%{}", exp1.previous_pc().to_string())
                         },
-                        Exp::BinaryExp(expa,op0 ,expb ) =>{
+                        Exp::BinaryExp(_expa,_op0 ,_expb ) =>{
                             // println!("format {:?} 's sub exp {:?}",self,exp);
-                            prev_stmt2 = format!("{}",exp1);
+                            prev_stmt1 = format!("{}",exp1);
                             // println!("prev_stmt:({})",prev_stmt);
                             // println!("prev_exp:[{}]",exp.previous_pc().to_string());
-                            prev_exp2 = format!("%{}", exp1.previous_pc().to_string())
+                            _prev_exp1 = format!("%{}", exp1.previous_pc().to_string())
                         }
                     }
 
                     match &**exp2 { //当前op的exp2
                         Exp::Number(num) =>{ 
                             // println!("match number");   
-                            prev_exp2 = num.to_string()
+                            _prev_exp2 = num.to_string()
                         }, // 当前op的exp2，如果是
-                        Exp::UnaryExp(unaryop, expression) => {
+                        Exp::UnaryExp(_unaryop, _expression) => {
                             // println!("format {:?} 's sub exp {:?}",self,exp);
                             prev_stmt2 = format!("{}",exp2);
                             // println!("prev_stmt:({})",prev_stmt);
                             // println!("prev_exp:[{}]",exp.previous_pc().to_string());
-                            prev_exp2 = format!("%{}", exp2.previous_pc().to_string())
+                            _prev_exp2 = format!("%{}", exp2.previous_pc().to_string())
                         },
-                        Exp::BinaryExp(expa,op0 ,expb )=> {
+                        Exp::BinaryExp(_expa,_op0 ,_expb )=> {
                             // println!("format {:?} 's sub exp {:?}",self,exp);
                             prev_stmt2 = format!("{}",exp2);
                             // println!("prev_stmt:({})",prev_stmt);
                             // println!("prev_exp:[{}]",exp.previous_pc().to_string());
-                            prev_exp2 = format!("%{}", exp2.previous_pc().to_string())
+                            _prev_exp2 = format!("%{}", exp2.previous_pc().to_string())
                         }
                     }
 
                     match op {
                         BinaryOp::Mul => {
-                            // print!("<Mul {}%{} = mul {}, {} Mul>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}{}%{} = mul {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Mul {}%{} = mul {}, {} Mul>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = mul {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         },
                         BinaryOp::Div => {
-                            // print!("<Div {}%{} = sdiv {}, {} Div>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}  %{} = sdiv {}, {}\n  ",prev_stmt1, self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Div {}%{} = sdiv {}, {} Div>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = div {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         },
                         BinaryOp::Mod => {
                             // print!("<Mod {}%{} = srem {}, {} Mod
-                            write!(f, "{}  {}  %{} = mod {}, {}\n  ",prev_stmt1,prev_stmt2,self.add_pc(), prev_exp1, prev_exp2)
+                            write!(f, "{}{}%{} = mod {}, {}\n  ",prev_stmt1,prev_stmt2,self.add_pc(), _prev_exp1, _prev_exp2)
                         },
 
                         BinaryOp::Add => {
-                            // print!("<Add {}%{} = add {}, {} Add>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}{}%{} = add {}, {}\n  ",prev_stmt1,prev_stmt2,self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Add {}%{} = add {}, {} Add>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = add {}, {}\n  ",prev_stmt1,prev_stmt2,self.add_pc(), _prev_exp1, _prev_exp2)
                         },
 
                         BinaryOp::Sub =>{
-                            // print!("<Sub {}%{} = sub {}, {} Sub>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}{}%{} = sub {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Sub {}%{} = sub {}, {} Sub>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = sub {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         },
                         BinaryOp::Eq =>{
-                            // print!("<Eq {}%{} = eq {}, {} Eq>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}{}%{} = eq {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Eq {}%{} = eq {}, {} Eq>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = eq {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         },
                         BinaryOp::Le=>{
-                            // print!("<Le {}%{} = sle {}, {} Le>\n",prev_stmt1, self.load_pc(), prev_exp1, prev_exp2);
-                            write!(f, "{}{}%{} = le {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), prev_exp1, prev_exp2)
+                            // print!("<Le {}%{} = sle {}, {} Le>\n",prev_stmt1, self.load_pc(), _prev_exp1, _prev_exp2);
+                            write!(f, "{}{}%{} = le {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         },
-                        _ =>{Ok(())}
+                        BinaryOp::Lt=>{
+                            write!(f, "{}{}%{} = lt {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
+                        },
+                        BinaryOp::Gt =>{
+                            write!(f, "{}{}%{} = gt {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
                         }
+                        BinaryOp::Ge =>{
+                            write!(f, "{}{}%{} = ge {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
+                        },
 
+                        BinaryOp::Ne =>{
+                            write!(f, "{}{}%{} = ne {}, {}\n  ",prev_stmt1,prev_stmt2, self.add_pc(), _prev_exp1, _prev_exp2)
+                        },
+                        BinaryOp::And =>{
+                            let pc1 = self.add_pc();
+                            let pc2 = self.add_pc();
+                            write!(f, "{}{}%{} = eq {}, {}\n  %{} = eq {}, {}\n  %{} = eq %{}, %{}\n  ",prev_stmt1,prev_stmt2, pc1, _prev_exp1, 0,pc2, _prev_exp2, 0,self.add_pc(), pc1, pc2)
+                        },
+                        BinaryOp::Or =>{
+                            let pc = self.add_pc();
+                            write!(f, "{}{}%{} = or {}, {}\n  %{} = ne %{}, {}\n  ",prev_stmt1,prev_stmt2, pc, _prev_exp1, _prev_exp2,self.add_pc(), pc, 0)
+                        },
+                        }
                     }  
-
-
             }
         }
     }
@@ -240,7 +265,13 @@ pub mod ast {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             // print!("{}ret %{}\n", self.exp, self.exp.load_pc());
             let prev_stmt = format!("{}",self.exp);
-            write!(f, "{}ret %{}\n", prev_stmt, self.exp.previous_pc())
+            if self.exp.load_pc() == 0 {
+                write!(f, "ret {}\n", prev_stmt)
+                
+            } else {
+                write!(f, "{}ret %{}\n", prev_stmt, self.exp.previous_pc())
+
+            }
         }
     }
 }

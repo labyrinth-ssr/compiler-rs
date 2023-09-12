@@ -27,8 +27,8 @@ pub enum ParentType {
 
 // 根据内存形式 Koopa IR 生成汇编
 trait GenerateAsm {
-    fn generate(&self, result: &mut String) {}
-    fn generate_inst(&self, result: &mut String, env: &FunctionData,regs:&Vec<&str>,reg_index:&mut usize,inst_reg:&mut HashMap<Value,String>,parent_type:ParentType) -> InstRet{
+    fn generate(&self, _result: &mut String) {}
+    fn generate_inst(&self, _result: &mut String, _env: &FunctionData,_regs:&Vec<&str>,_reg_index:&mut usize,_inst_reg:&mut HashMap<Value,String>,_parent_type:ParentType) -> InstRet{
         InstRet{reg:"".to_string(),valuekind:"".to_string()}
     } 
 }
@@ -49,18 +49,17 @@ impl GenerateAsm for koopa::ir::FunctionData {
     fn generate(&self, result: &mut String) {
         result.push_str(&self.name()[1..]);
         result.push_str(":\n");
-        use std::collections::HashMap;
 
         let regs = vec!["t0","t1","t2","t3","t4","t5","t6", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"];
         let mut reg_index = 0;
         let mut inst_reg:HashMap<Value,String> = HashMap::new();
 
         // 遍历基本块列表
-        for (&bb, node) in self.layout().bbs() {
+        for (&_bb, node) in self.layout().bbs() {
             // 遍历指令列表
             for &inst in node.insts().keys() {
                 // 处理指令
-                let inst_ret = inst.generate_inst(result, self,&regs,&mut reg_index,&mut inst_reg,ParentType::None);
+                inst.generate_inst(result, self,&regs,&mut reg_index,&mut inst_reg,ParentType::None);
             }
         }
     }
@@ -125,48 +124,91 @@ impl GenerateAsm for koopa::ir::entities::Value {
                 let rhs_ret= binaryop.rhs().generate_inst(result, env,regs,reg_index,inst_reg,ParentType::Binary);
 
                 // 当类型为integer且非零时，可以复用reg
-                let mut rd_reg = String::new();
+                let mut _rd_reg=String::new();
                 if &lhs_ret.valuekind =="Integer" &&lhs_ret.reg != "x0" {
-                    rd_reg = lhs_ret.reg.clone();
+                    _rd_reg = lhs_ret.reg.clone();
                 } else if &rhs_ret.valuekind =="Integer" &&rhs_ret.reg != "x0" {
-                    rd_reg = rhs_ret.reg.clone();
+                    _rd_reg = rhs_ret.reg.clone();
                 } else {
-                    rd_reg = regs[*reg_index].to_string();
+                    _rd_reg = regs[*reg_index].to_string();
                     *reg_index  += 1;
                 }
 
-                inst_reg.insert(*self, rd_reg.clone());
+                inst_reg.insert(*self, _rd_reg.clone());
 
                 match binaryop.op() {
                     Eq =>{
-                        let str = "  xor   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  xor   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
-                        let str = "  seqz  ".to_string() + rd_reg.as_str() + ", " + rd_reg.as_str() + "\n";
+                        let str = "  seqz  ".to_string() + _rd_reg.as_str() + ", " + _rd_reg.as_str() + "\n";
                         result.push_str(&str);
                             
-                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
                     },
                     Sub=>{
-                        let str = "  sub   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  sub   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
-                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
                     },
                     Mul=>{
-                        let str = "  mul   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  mul   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
-                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
                     },
                     Add=>{
-                        let str = "  add   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        let str = "  add   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
                         result.push_str(&str);
-                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
                     },
                     Le => {
-                        let str = "  sgt   ".to_string() + rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n" + "  seqz  " + rd_reg.as_str() + ", " + rd_reg.as_str() + "\n";
+                        let str = "  sgt   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n" + "  seqz  " + _rd_reg.as_str() + ", " + _rd_reg.as_str() + "\n";
                         result.push_str(&str);
-                        InstRet{reg:rd_reg,valuekind:"Binary".to_string()}
-                    }
-                    _ => unreachable!()
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Div =>{
+                        let str = "  div   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Mod =>{
+                        let str = "  rem   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Lt =>{
+                        let str = "  slt   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Gt =>{
+                        let str = "  sgt   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Ge => {
+                        let str = "  slt   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n" + "  seqz  " + _rd_reg.as_str() + ", " + _rd_reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    And =>{
+                        let str = "  snez   ".to_string() + lhs_ret.reg.as_str() +", " + lhs_ret.reg.as_str()+"\n" + "  snez   " + rhs_ret.reg.as_str() +", " + rhs_ret.reg.as_str()+"\n"+ "  and   " + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    Or =>{
+                        let str = "  or    ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n" + "  snez  " + _rd_reg.as_str() + ", " + _rd_reg.as_str() + "\n";
+                        result.push_str(&str);
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    NotEq => {
+                        let str = "  xor   ".to_string() + _rd_reg.as_str() + ", " + lhs_ret.reg.as_str() + ", " + rhs_ret.reg.as_str() + "\n";
+                        result.push_str(&str);
+                        let str = "  snez  ".to_string() + _rd_reg.as_str() + ", " + _rd_reg.as_str() + "\n";
+                        result.push_str(&str);
+                            
+                        InstRet{reg:_rd_reg,valuekind:"Binary".to_string()}
+                    },
+                    _ =>{unreachable!()}
                 }
                 }
             _ => unreachable!(),
@@ -192,6 +234,7 @@ fn main() -> Result<()> {
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
     // parse input file
+    println!("{:?}", ast);
     println!("{}", ast);
 
     let driver = koopa::front::Driver::from(ast.to_string());
@@ -205,8 +248,7 @@ fn main() -> Result<()> {
     match mode.as_str() {
         "-koopa" => {
             // 文本形式IR，文件output
-            // write!(&mut writer, "{}", ast)
-            Ok(())
+            write!(&mut writer, "{}", ast)
         }
         "-riscv" => {
             // RISC-V汇编，文件output
